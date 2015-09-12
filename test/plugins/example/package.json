@@ -1,0 +1,21 @@
+{
+  "name": "example",
+  "version": "0.0.1",
+  "main": "./index.js",
+  "engines": {
+    "node": "0.10.*"
+  },
+  "dependencies": {
+  },
+  "plugin": {
+    "consumes": [],
+    "provides": []
+  },
+  "plugin-config": {
+    "name": "Guest"
+  },
+  "plugin-args": {
+    "--example": "user name to print"
+  }
+  
+}

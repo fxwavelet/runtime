@@ -1,0 +1,19 @@
+{
+  "name": "fx-runtime",
+  "version": "0.1.15",
+  "description": "wavelet runtime, manages plugins and services.",
+  "keywords": ["wavelet", "plugin", "service", "service oriented"],
+  "homepage": "https://github.com/fxwavelet/runtime",
+  "bugs": {
+    "url": "https://github.com/fxwavelet/runtime/issues",
+    "email": "daily.bhou@gmail.com"
+  },
+  "main": "./index.js",
+  "engines": {
+    "node": "0.12.*"
+  },
+  "dependencies": {
+    "architect": "0.1.x",
+    "minimist": "1.1.x"
+  }
+}
