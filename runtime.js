@@ -10,6 +10,15 @@ var packageJson = require('./package.json');
 
 global._runtimeVersion = packageJson.version;
 
+function printRuntimeHelp() {
+  console.log();
+  console.log('Runtime options:');
+  console.log('-c config, the architect config file path');
+  console.log('-d debug, enable debug');
+  console.log('-h help, print usage');
+  console.log();
+}
+
 function start(home, configuration, printUsage) {
   global.home = home;
   global._home = home;
@@ -22,12 +31,7 @@ function start(home, configuration, printUsage) {
     if (printUsage) {
       printUsage();
     }
-    console.log();
-    console.log('Runtime options:');
-    console.log('-c config, the architect config file path');
-    console.log('-d debug, enable debug');
-    console.log('-h help, print usage');
-    console.log();
+    printRuntimeHelp();
     return;
   }
 
@@ -46,11 +50,11 @@ function start(home, configuration, printUsage) {
   }
 
   /* run application */
-  var architectApp = architect.createApp(tree, function (err, app) {
+  var architectApp = architect.createApp(tree, function(err, app) {
     if (err) {
       console.log(err);
     }
-  }).on('error', function (err) {
+  }).on('error', function(err) {
     console.error(err.stack);
   });
   global.runtime = architectApp;
@@ -64,7 +68,7 @@ function start(home, configuration, printUsage) {
 
     var servicesBuf = [];
     architectApp
-      .on('plugin', function (plugin) {
+      .on('plugin', function(plugin) {
         console.info('registering plugin', plugin.packagePath);
 
         var pluginName = path.basename(plugin.packagePath);
@@ -77,7 +81,7 @@ function start(home, configuration, printUsage) {
         global._plugins[pluginName] = plugin;
 
         servicesBuf = [];
-      }).on('service', function (name, service) {
+      }).on('service', function(name, service) {
         servicesBuf.push(name);
         console.info('registering service', name);
       });
@@ -130,7 +134,7 @@ function resolvePlugins(searchPaths, config, help, filter) {
 
   if (filter.apps) {
     for (var i = 0; i < filter.apps.length; i++) {
-      traverse(config, dependencies, bindings, filter.apps[i], function (plugin) {
+      traverse(config, dependencies, bindings, filter.apps[i], function(plugin) {
         if (!plugin.hasOwnProperty('ref')) {
           plugin.ref = 1;
         } else {
@@ -176,14 +180,13 @@ function searchPluginInPath(bindings, dependencies, config, help, searchPath, fi
   var fs = require('fs');
   var path = require('path');
 
-  var folders = fs.readdirSync(searchPath).filter(function (file) {
+  var folders = fs.readdirSync(searchPath).filter(function(file) {
     if (fs.statSync(path.join(searchPath, file)).isDirectory()) {
       if (!filter) {
         return true;
       }
 
-      return (!filter.whiteList || filter.whiteList.indexOf(file) >= 0)
-        && (!filter.blackList || filter.blackList.indexOf(file) < 0 );
+      return (!filter.whiteList || filter.whiteList.indexOf(file) >= 0) && (!filter.blackList || filter.blackList.indexOf(file) < 0);
     } else {
       return false;
     }
@@ -302,5 +305,6 @@ function traverse(config, dependencies, bindings, root, visit) {
 
 module.exports = {
   start: start,
-  resolvePlugins: resolvePlugins
+  resolvePlugins: resolvePlugins,
+  help: printRuntimeHelp
 };

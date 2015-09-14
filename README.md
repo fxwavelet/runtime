@@ -16,6 +16,21 @@ All plugins are defined in a config file, **Wavelet runtime** provides several w
 - from a function
 - resolve config from repository
 
+## API
+
+### runtime.start([String] dir, [String | function | object] config, [function] help)
+
+start application with plugins defined in config
+
+### runtime.resolvePlugins([Array of String] searchPaths, [object] config, [object] help, [object] filter)
+
+resolve plugins from search paths
+
+### runtime.help()
+
+print runtime help
+
+
 ## Usage
 Load plugin config file from a config file.
 `````javascript
@@ -115,6 +130,7 @@ runtime.start(__dirname, plugins.config, function() {
     console.log('');
 });
 `````
+
 
 
 ## Registered global variables
