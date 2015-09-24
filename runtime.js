@@ -1,8 +1,11 @@
 var argv = require('minimist')(process.argv.slice(2));
 
-var packageJson = require('./package.json');
+var fs = require('fs');
+var path = require('path');
 
-global._runtimeVersion = packageJson.version;
+var runtimePackageJson = require('./package.json');
+
+global._runtimeVersion = runtimePackageJson.version;
 
 function printRuntimeHelp() {
   console.log();
@@ -13,12 +16,12 @@ function printRuntimeHelp() {
   console.log();
 }
 
-/**
- * start the runtime
- * @param home  the home path of your application, usually pass __dirname in your app entry js
- * @param configuration architect config path, could be a requirable folder/js/json or an object, or a function that returns config object
- * @param printUsage  [option] function to print your application usage
- */
+// ----------------------------------------------------
+// start the runtime
+// @param home  the home path of your application, usually pass __dirname in your app entry js
+// @param configuration architect config path, could be a requirable folder/js/json or an object, or a function that returns config object
+// @param printUsage  [option] function to print your application usage
+// ---------------------------------------------------
 function start(home, configuration, printUsage) {
   global.home = home;
   global._home = home;
@@ -109,7 +112,7 @@ function resolvePlugins(searchPaths, config, help, options) {
   }
 
   // find unbinded plugins and remove them
-  if (options.binding) {
+  if (options.bindings) {
     for (var key in options.bindings) {
       // remove unused plugin from config
       if (!bindings.hasOwnProperty(key)) {
@@ -124,7 +127,7 @@ function resolvePlugins(searchPaths, config, help, options) {
         }
       }
 
-      bindings[key] = [options.binding[key]];
+      bindings[key] = [options.bindings[key]];
     }
   }
 
@@ -178,23 +181,26 @@ function resolvePlugins(searchPaths, config, help, options) {
   };
 }
 
+function searchPlugins(searchPaths) {
+  var bindings = {};
+  var plugins = {};
+
+  for (var i = 0; i < searchPaths.length; i++) {
+    searchBindingsAndDependenciesInPath(bindings, plugins, searchPaths[i], null, null);
+  }
+
+  return {
+    bindings: bindings,
+    plugins: plugins
+  }
+}
+
 function searchPluginInPath(bindings, dependencies, config, help, searchPath, options) {
+  if (!options) options = {};
+
   var argv = require('minimist')(process.argv.slice(2));
 
-  var fs = require('fs');
-  var path = require('path');
-
-  var folders = fs.readdirSync(searchPath).filter(function(file) {
-    if (fs.statSync(path.join(searchPath, file)).isDirectory()) {
-      if (!options) {
-        return true;
-      }
-
-      return (!options.whiteList || options.whiteList.indexOf(file) >= 0) && (!options.blackList || options.blackList.indexOf(file) < 0);
-    } else {
-      return false;
-    }
-  });
+  var folders = findPluginInSearchPath(searchPath, options.whiteList, options.blackList);
 
   var packageFile = null;
   var packageJson = null;
@@ -212,53 +218,124 @@ function searchPluginInPath(bindings, dependencies, config, help, searchPath, op
       packageJson = require(packageFile);
       if (packageJson.hasOwnProperty('plugin')) {
         // resolve bindings and dependencies
-        if (packageJson['plugin'].hasOwnProperty('provides')) {
-          for (var j = 0; j < packageJson['plugin']['provides'].length; j++) {
-            var service = packageJson['plugin']['provides'][j];
-            if (!bindings.hasOwnProperty(service)) {
-              bindings[service] = [];
-            }
-
-            bindings[service].push(file);
-          }
-        }
-
-        if (packageJson['plugin'].hasOwnProperty('consumes')) {
-          dependencies[file] = packageJson['plugin']['consumes'];
-        }
+        updateBindingsAndDependencies(bindings, dependencies, file, packageJson);
 
         // resolve plugin config
-        if (packageJson.hasOwnProperty('plugin-config')) {
-          if (!config.hasOwnProperty(file)) {
-            config[file] = packageJson['plugin-config'];
-          } else {
-            copyProperty(packageJson['plugin-config'], config[file], false);
-          }
-          config[file].packagePath = path.join(searchPath, file);
-        } else {
-          if (!config.hasOwnProperty(file)) {
-            config[file] = {};
-          } else {
-            copyProperty(packageJson['plugin-config'], config[file], false);
-          }
-          config[file].packagePath = path.join(searchPath, file);
-        }
+        updatePluginConfigFromPackage(config, searchPath, file, packageJson);
 
         // resolve plugin help
-        if (packageJson.hasOwnProperty('plugin-args')) {
-          var args = packageJson['plugin-args'];
-          for (var arg in args) {
-            if (args.hasOwnProperty(arg)) {
-              if (help.hasOwnProperty(arg)) {
-                if (argv.d) {
-                  console.log('skip duplicated argument definition, ', arg);
-                }
-                continue;
-              }
-              help[arg] = args[arg];
-            }
+        updatePluginHelpFromPackage(help, packageJson);
+      }
+    }
+  }
+}
+
+function searchBindingsAndDependenciesInPath(bindings, dependencies, searchPath, whiteList, blackList) {
+  var folders = findPluginInSearchPath(searchPath, whiteList, blackList);
+
+  var packageFile = null;
+  var packageJson = null;
+  for (var i = 0; i < folders.length; i++) {
+    var file = folders[i];
+    packageFile = path.join(searchPath, file, 'package.json');
+
+    if (fs.existsSync(packageFile)) {
+      packageJson = require(packageFile);
+      if (packageJson.hasOwnProperty('plugin')) {
+        // resolve bindings and dependencies
+        updateBindingsAndDependencies(bindings, dependencies, file, packageJson);
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------
+// update plugin bindings and dependencies
+// @param searchPath    current plugin search path
+// @param whiteList     plugin white list
+// @param blackList     plugin black list
+// ---------------------------------------------------
+function findPluginInSearchPath(searchPath, whiteList, blackList) {
+  return fs.readdirSync(searchPath).filter(function(file) {
+    if (fs.statSync(path.join(searchPath, file)).isDirectory()) {
+      return (!whiteList || whiteList.indexOf(file) >= 0) && (!blackList || blackList.indexOf(file) < 0);
+    } else {
+      return false;
+    }
+  });
+}
+
+// ---------------------------------------------------
+// update plugin bindings and dependencies
+// @param bindings      bindings to be updated
+// @param dependencies  dependencies to be updated
+// @param packageJson   package json object
+// ---------------------------------------------------
+function updateBindingsAndDependencies(bindings, dependencies, file, packageJson) {
+  // resolve bindings and dependencies
+  if (packageJson['plugin'].hasOwnProperty('provides')) {
+    for (var j = 0; j < packageJson['plugin']['provides'].length; j++) {
+      var service = packageJson['plugin']['provides'][j];
+      if (!bindings.hasOwnProperty(service)) {
+        bindings[service] = [];
+      }
+
+      if (bindings[service].indexOf(file) < 0) {
+        bindings[service].push(file);
+      }
+    }
+  }
+
+  if (dependencies.hasOwnProperty(file)) {
+    console.warn('Overriding plugin definition: ' + file);
+  }
+  dependencies[file] = packageJson['plugin'];
+}
+
+// ---------------------------------------------------
+// update plugin configuration
+// @param config        config object to be updated
+// @param searchPath    the current plugin search path
+// @param pluginName    plugin name
+// @param packageJson   package json object
+// ---------------------------------------------------
+function updatePluginConfigFromPackage(config, searchPath, pluginName, packageJson) {
+  // resolve plugin config
+  if (packageJson.hasOwnProperty('plugin-config')) {
+    if (!config.hasOwnProperty(pluginName)) {
+      config[pluginName] = packageJson['plugin-config'];
+    } else {
+      copyProperty(packageJson['plugin-config'], config[pluginName], false);
+    }
+    config[pluginName].packagePath = path.join(searchPath, pluginName);
+  } else {
+    if (!config.hasOwnProperty(pluginName)) {
+      config[pluginName] = {};
+    } else {
+      copyProperty(packageJson['plugin-config'], config[pluginName], false);
+    }
+    config[pluginName].packagePath = path.join(searchPath, pluginName);
+  }
+}
+
+// ---------------------------------------------------
+// update plugin help
+// @param help          help object to be updated
+// @param packageJson   package json object
+// ---------------------------------------------------
+function updatePluginHelpFromPackage(help, packageJson) {
+  // resolve plugin help
+  if (packageJson.hasOwnProperty('plugin-args')) {
+    var args = packageJson['plugin-args'];
+    for (var arg in args) {
+      if (args.hasOwnProperty(arg)) {
+        if (help.hasOwnProperty(arg)) {
+          if (argv.d) {
+            console.log('skip duplicated argument definition, ', arg);
           }
+          continue;
         }
+        help[arg] = args[arg];
       }
     }
   }
@@ -310,5 +387,6 @@ function traverse(config, dependencies, bindings, root, visit) {
 module.exports = {
   start: start,
   resolvePlugins: resolvePlugins,
+  searchPlugins: searchPlugins,
   help: printRuntimeHelp
 };

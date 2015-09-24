@@ -1,5 +1,5 @@
 {
-  "name": "example",
+  "name": "main",
   "version": "0.0.1",
   "main": "./index.js",
   "engines": {
@@ -8,13 +8,11 @@
   "dependencies": {
   },
   "plugin": {
-    "consumes": [],
-    "provides": ["example_service"]
+    "consumes": ["example_service"],
+    "provides": []
   },
   "plugin-config": {
-    "name": "Guest"
   },
   "plugin-args": {
-    "--example": "user name to print"
   } 
 }

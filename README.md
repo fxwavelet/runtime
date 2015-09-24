@@ -54,7 +54,7 @@ default help object or null
 
 ### runtime.resolvePlugins(searchPaths, config, help, options)
 
-resolve plugins from search paths, it returns: 
+resolve plugin configurations from search paths, it returns: 
 ``````json
 {
   "config": "the configuration used to start runtime",
@@ -113,6 +113,18 @@ the black list of plugins
 ````json
 ["fx-logger", "fx-config"]
 ````
+
+### runtime.searchPlugins(searchPaths)
+find existing plugins from search paths, it returns: 
+``````json
+{
+  "bindings": "service - plugin binding pairs",
+  "plugins": "plugin - service dependencies pairs"
+}
+``````
+
+**searchPaths [Array of String]**
+where to find your plugins
 
 ### runtime.help()
 
