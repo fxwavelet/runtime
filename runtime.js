@@ -97,6 +97,10 @@ function resolvePlugins(searchPaths, config, help, filter) {
     help = {};
   }
 
+  if (!filter) {
+    filter = {};
+  }
+
   var bindings = {};
   var dependencies = {};
 
