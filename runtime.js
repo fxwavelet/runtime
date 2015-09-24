@@ -1,9 +1,3 @@
-/**
- * start the runtime
- * @param home  the home path of your application, usually pass __dirname in your app entry js
- * @param configuration architect config path, could be a requirable folder/js/json or an object, or a function that returns config object
- * @param printUsage  [option] function to print your application usage
- */
 var argv = require('minimist')(process.argv.slice(2));
 
 var packageJson = require('./package.json');
@@ -19,6 +13,12 @@ function printRuntimeHelp() {
   console.log();
 }
 
+/**
+ * start the runtime
+ * @param home  the home path of your application, usually pass __dirname in your app entry js
+ * @param configuration architect config path, could be a requirable folder/js/json or an object, or a function that returns config object
+ * @param printUsage  [option] function to print your application usage
+ */
 function start(home, configuration, printUsage) {
   global.home = home;
   global._home = home;

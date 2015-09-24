@@ -18,13 +18,94 @@ All plugins are defined in a config file, **Wavelet runtime** provides several w
 
 ## API
 
-### runtime.start([String] dir, [String | function | object] config, [function] help)
+### runtime.start(dir, config, help)
 
 start application with plugins defined in config
 
-### runtime.resolvePlugins([Array of String] searchPaths, [object] config, [object] help, [object] filter)
+**dir [String]**
+your application home path
 
-resolve plugins from search paths
+**config [Object]**
+default configurations for plugins or null
+`````json
+{
+  "fx-plugin-example": {
+    "config_key_1": "config_value_1",
+    "config_key_2": "config_value_2"
+  }
+}
+`````
+
+**help [Object]**
+default help object or null
+`````json
+{
+  "-v": "print the version"
+}
+`````
+
+
+### runtime.resolvePlugins(searchPaths, config, help, options)
+
+resolve plugins from search paths, it returns: 
+``````json
+{
+  "config": "the configuration used to start runtime",
+  "help": "argument key-value pairs",
+  "bindings": "service - plugin binding pairs",
+  "dependencies": "plugin - service dependencies pairs"
+}
+``````
+
+**searchPaths [Array of String]**
+where to find your plugins
+
+**config [Object]**
+default configurations for plugins or null
+`````json
+{
+  "fx-plugin-example": {
+    "config_key_1": "config_value_1",
+    "config_key_2": "config_value_2"
+  }
+}
+`````
+
+**help [Object]**
+default help object or null
+`````json
+{
+  "-v": "print the version"
+}
+`````
+
+**options [Object]**
+
+**options.binding**
+bind service and its plugin implementation
+`````json
+{
+  "logger": "fx-logger"
+}
+`````
+
+**options.apps**
+the top/root level of plugins, defining this array will make the unreferenced plugin removed from plugin resolve process. Only referenced plugins will be loaded.
+````json
+["api_server_plugin", "ui_server_plugin"]
+````
+
+**options.whiteList**
+the white list of plugins
+````json
+["fx-logger", "fx-config"]
+````
+
+**options.blackList**
+the black list of plugins
+````json
+["fx-logger", "fx-config"]
+````
 
 ### runtime.help()
 
@@ -109,12 +190,12 @@ var preDefinedHelp = {
   // other help information
 };
 
-var filter = {
+var options = {
   "whiteList": [], // plugin white list, or set it to null
   "blackList": [] // plugin black list, or set it to null
 }
 
-var plugins = runtime.resolvePlugins(pluginPaths, defaultConfig, preDefinedHelp, filter);
+var plugins = runtime.resolvePlugins(pluginPaths, defaultConfig, preDefinedHelp, options);
 
 runtime.start(__dirname, plugins.config, function() {
     console.log('Usage: wavelet [optins]');
