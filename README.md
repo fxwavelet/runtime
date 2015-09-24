@@ -16,6 +16,13 @@ All plugins are defined in a config file, **Wavelet runtime** provides several w
 - from a function
 - resolve config from repository
 
+## Example/Test
+Run 
+`````sh
+node ./test/test.js
+node ./test/testSearchConfig.js
+`````
+
 ## API
 
 ### runtime.start(dir, config, help)

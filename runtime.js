@@ -88,7 +88,7 @@ function start(home, configuration, printUsage) {
   }
 }
 
-function resolvePlugins(searchPaths, config, help, filter) {
+function resolvePlugins(searchPaths, config, help, options) {
   if (!config) {
     config = {};
   }
@@ -97,20 +97,20 @@ function resolvePlugins(searchPaths, config, help, filter) {
     help = {};
   }
 
-  if (!filter) {
-    filter = {};
+  if (!options) {
+    options = {};
   }
 
   var bindings = {};
   var dependencies = {};
 
   for (var i = 0; i < searchPaths.length; i++) {
-    searchPluginInPath(bindings, dependencies, config, help, searchPaths[i], filter);
+    searchPluginInPath(bindings, dependencies, config, help, searchPaths[i], options);
   }
 
   // find unbinded plugins and remove them
-  if (filter.binding) {
-    for (var key in filter.bindings) {
+  if (options.binding) {
+    for (var key in options.bindings) {
       // remove unused plugin from config
       if (!bindings.hasOwnProperty(key)) {
         if (argv.d) {
@@ -119,26 +119,26 @@ function resolvePlugins(searchPaths, config, help, filter) {
         continue;
       }
       for (var i = 0; i < bindings[key].length; i++) {
-        if (bindings[key][i] != filter.bindings[key]) {
+        if (bindings[key][i] != options.bindings[key]) {
           delete config[bindings[key][i]];
         }
       }
 
-      bindings[key] = [filter.binding[key]];
+      bindings[key] = [options.binding[key]];
     }
   }
 
-  if (filter.apps) {
+  if (options.apps) {
     for (var key in config) {
       if (config.hasOwnProperty(key) && (key.indexOf('fx-red') == 0)) {
-        filter.apps.push(key);
+        options.apps.push(key);
       }
     }
   }
 
-  if (filter.apps) {
-    for (var i = 0; i < filter.apps.length; i++) {
-      traverse(config, dependencies, bindings, filter.apps[i], function(plugin) {
+  if (options.apps) {
+    for (var i = 0; i < options.apps.length; i++) {
+      traverse(config, dependencies, bindings, options.apps[i], function(plugin) {
         if (!plugin.hasOwnProperty('ref')) {
           plugin.ref = 1;
         } else {
@@ -152,7 +152,7 @@ function resolvePlugins(searchPaths, config, help, filter) {
   var outputConfig = [];
   for (var key in config) {
     if (config.hasOwnProperty(key) && config[key].hasOwnProperty("packagePath")) {
-      if (filter.apps && (!config[key].ref || config[key].ref == 0) && key.indexOf('fx-red') != 0) {
+      if (options.apps && (!config[key].ref || config[key].ref == 0) && key.indexOf('fx-red') != 0) {
         if (argv.d) {
           console.warn('Remove unreferenced plugin:', key);
         }
@@ -178,7 +178,7 @@ function resolvePlugins(searchPaths, config, help, filter) {
   };
 }
 
-function searchPluginInPath(bindings, dependencies, config, help, searchPath, filter) {
+function searchPluginInPath(bindings, dependencies, config, help, searchPath, options) {
   var argv = require('minimist')(process.argv.slice(2));
 
   var fs = require('fs');
@@ -186,11 +186,11 @@ function searchPluginInPath(bindings, dependencies, config, help, searchPath, fi
 
   var folders = fs.readdirSync(searchPath).filter(function(file) {
     if (fs.statSync(path.join(searchPath, file)).isDirectory()) {
-      if (!filter) {
+      if (!options) {
         return true;
       }
 
-      return (!filter.whiteList || filter.whiteList.indexOf(file) >= 0) && (!filter.blackList || filter.blackList.indexOf(file) < 0);
+      return (!options.whiteList || options.whiteList.indexOf(file) >= 0) && (!options.blackList || options.blackList.indexOf(file) < 0);
     } else {
       return false;
     }

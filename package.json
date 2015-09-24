@@ -1,6 +1,6 @@
 {
   "name": "fx-runtime",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "wavelet runtime, manages plugins and services.",
   "keywords": ["wavelet", "plugin", "service", "service oriented"],
   "homepage": "https://github.com/fxwavelet/runtime",
